@@ -30,14 +30,14 @@ type Resource struct {
 
 // Instance represents a resource instance in the state.
 type Instance struct {
-	Attributes   map[string]interface{} `json:"attributes"`
-	Dependencies []string               `json:"dependencies"`
+	Attributes   json.RawMessage `json:"attributes"`
+	Dependencies []string        `json:"dependencies"`
 }
 
 // Primary represents the primary instance of a resource in the state.
 type Primary struct {
-	ID         string                 `json:"id"`
-	Attributes map[string]interface{} `json:"attributes"`
+	ID         string          `json:"id"`
+	Attributes json.RawMessage `json:"attributes"`
 }
 
 // Backend represents the backend configuration for the state.

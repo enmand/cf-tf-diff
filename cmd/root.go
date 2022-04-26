@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 
+	"github.com/enmand/cf-tf-diff/internal/diff"
 	"github.com/enmand/cf-tf-diff/internal/terraform"
 	"github.com/jbowes/cling"
 	"github.com/urfave/cli/v2"
@@ -56,7 +57,11 @@ func compare(c *cli.Context) error {
 	if err != nil {
 		return cling.Wrap(err, "unable to get state file")
 	}
-	_ = sf
+	cfs, err := diff.ParseState(sf)
+	if err != nil {
+		return cling.Wrap(err, "unable to parse state file")
+	}
+	_ = cfs
 
 	return nil
 }

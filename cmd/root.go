@@ -57,6 +57,7 @@ func compare(c *cli.Context) error {
 	if err != nil {
 		return cling.Wrap(err, "unable to get state file")
 	}
+
 	cfs, err := diff.ParseState(sf)
 	if err != nil {
 		return cling.Wrap(err, "unable to parse state file")

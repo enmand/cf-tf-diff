@@ -18,17 +18,17 @@ func ParseState(s *state.State) (*cloudflare.State, error) {
 		for _, i := range r.Instances {
 			switch r.Type {
 			case "cloudflare_certificate_pack":
-				certificatePack, err := cloudflare.Parse[cf.CertificatePack](i.Attributes)
+				certificatePack, err := cloudflare.Parse[cf.CertificatePackAdvancedCertificate](i.Attributes)
 				if err != nil {
 					return nil, cling.Wrap(err, "unable to parse certificate packs")
 				}
 				tfCloudflareState.CertificatePacks = append(tfCloudflareState.CertificatePacks, certificatePack)
 			case "cloudflare_record":
-				dnsRecord, err := cloudflare.Parse[cf.DNSRecord](i.Attributes)
+				dnsRecord, err := cloudflare.Parse[cloudflare.DNSRecord](i.Attributes)
 				if err != nil {
 					return nil, cling.Wrap(err, "unable to parse dns records")
 				}
-				tfCloudflareState.Records = append(tfCloudflareState.Records, dnsRecord)
+				tfCloudflareState.Records = append(tfCloudflareState.Records, dnsRecord.Get().GetDNSRecord())
 			case "cloudflare_filter":
 				filter, err := cloudflare.Parse[cf.Filter](i.Attributes)
 				if err != nil {
@@ -36,11 +36,14 @@ func ParseState(s *state.State) (*cloudflare.State, error) {
 				}
 				tfCloudflareState.Filters = append(tfCloudflareState.Filters, filter)
 			case "cloudflare_firewall_rule":
-				firewallRule, err := cloudflare.Parse[cf.FirewallRule](i.Attributes)
+				firewallRule, err := cloudflare.Parse[cloudflare.FirewallRule](i.Attributes)
 				if err != nil {
 					return nil, cling.Wrap(err, "unable to parse firewall rules")
 				}
-				tfCloudflareState.FirewallRules = append(tfCloudflareState.FirewallRules, firewallRule)
+				tfCloudflareState.FirewallRules = append(
+					tfCloudflareState.FirewallRules,
+					firewallRule.Get().GetFirewallRule(firewallRule.GetZoneID()),
+				)
 			case "cloudflare_ip_list":
 				ipList, err := cloudflare.Parse[cf.IPList](i.Attributes)
 				if err != nil {
@@ -70,7 +73,7 @@ func ParseState(s *state.State) (*cloudflare.State, error) {
 				if err != nil {
 					return nil, cling.Wrap(err, "unable to parse zones")
 				}
-				tfCloudflareState.Zones = append(tfCloudflareState.Zones, zone.GetZone())
+				tfCloudflareState.Zones = append(tfCloudflareState.Zones, zone.Get().GetZone())
 				continue
 			case "cloudflare_zone_settings_override":
 				zoneSettings, err := cloudflare.Parse[cf.ZoneSetting](i.Attributes)

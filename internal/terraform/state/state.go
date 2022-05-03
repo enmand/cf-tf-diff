@@ -3,7 +3,12 @@ package state
 import (
 	"encoding/json"
 	"io"
+
+	"github.com/enmand/cf-tf-diff/internal/terraform/providers"
+	"github.com/jbowes/cling"
 )
+
+type InstanceBody interface{}
 
 // State represents the state of a Terraform configuration.
 type State struct {
@@ -19,25 +24,64 @@ type Module struct {
 	Resources map[string]Resource `json:"resources"`
 }
 
+// ResourceHeader represents the header of a resource in the state.
+type ResourceHeader struct {
+	Mode     string `json:"mode"`
+	Type     string `json:"type"`
+	Name     string `json:"name"`
+	Provider string `json:"provider"`
+}
+
+type ResourceBody struct {
+	Instances []Instance `json:"instances"`
+}
+
 // Resource represents a resource in the Terraform state.
 type Resource struct {
-	Mode      string     `json:"mode"`
-	Type      string     `json:"type"`
-	Name      string     `json:"name"`
-	Provider  string     `json:"provider"`
-	Instances []Instance `json:"instances"`
+	ResourceHeader
+	ResourceBody
+}
+
+func (r *Resource) UnmarshalJSON(data []byte) error {
+	err := json.Unmarshal(data, &r.ResourceHeader)
+	if err != nil {
+		return cling.Wrap(err, "failed to unmarshal resource header")
+	}
+
+	body := ResourceBody{}
+	if err := json.Unmarshal(data, &body); err != nil {
+		return cling.Wrap(err, "failed to unmarshal resource instances")
+	}
+
+	for _, instance := range body.Instances {
+		bt, err := providers.FindResourceType(r.Type)
+		if err != nil {
+			return cling.Wrap(err, "failed to find resource type")
+		}
+
+		if err := json.Unmarshal(instance.Attributes, bt); err != nil {
+			return cling.Wrap(err, "failed to unmarshal resource instance")
+		}
+
+		instance.Body = bt
+
+		r.ResourceBody.Instances = append(r.ResourceBody.Instances, instance)
+	}
+
+	return nil
 }
 
 // Instance represents a resource instance in the state.
 type Instance struct {
-	Attributes   map[string]interface{} `json:"attributes"`
-	Dependencies []string               `json:"dependencies"`
+	Attributes   json.RawMessage `json:"attributes"`
+	Dependencies []string        `json:"dependencies"`
+	Body         InstanceBody    `json:"-"`
 }
 
 // Primary represents the primary instance of a resource in the state.
 type Primary struct {
-	ID         string                 `json:"id"`
-	Attributes map[string]interface{} `json:"attributes"`
+	ID         string          `json:"id"`
+	Attributes json.RawMessage `json:"attributes"`
 }
 
 // Backend represents the backend configuration for the state.
